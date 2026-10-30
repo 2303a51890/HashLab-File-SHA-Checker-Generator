@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#060910">
+    <meta name="color-scheme" content="dark">
+    <meta name="referrer" content="no-referrer">
+    <meta name="description" content="Generate SHA-1, SHA-256, SHA-384 and SHA-512 checksums and verify files against a publisher’s checksum. Everything runs in your browser; files are never uploaded.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="HashLab: File Checksum Generator and Verifier">
+    <meta property="og:description" content="Verify file integrity without uploading anything. Hashes are calculated locally in your browser.">
+    <title>HashLab: File Checksum Generator and Verifier</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="topbar">
+        <a class="brand" href="#" aria-label="HashLab home">
+            <span class="brand-icon">
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                </svg>
+            </span>
+            <span>HashLab</span>
+        </a>
+        <span class="topbar-label">File integrity checker</span>
+    </header>
+
+    <noscript>
+        <div class="noscript-note" role="alert">HashLab calculates hashes in your browser and needs JavaScript to run. Enable JavaScript and reload the page.</div>
+    </noscript>
+
+    <main id="main" class="container">
+        <section class="hero">
+            <h1>Verify file integrity without uploading anything.</h1>
+            <p>
+                Generate SHA-1, SHA-256, SHA-384 and SHA-512 checksums for your files
+                and compare them with the value the publisher lists. Files are read
+                in your browser and never leave your device.
+            </p>
+            <ul id="envStatus" class="statusbar" aria-label="Browser capabilities"></ul>
+        </section>
+
+        <section class="panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Files</h2>
+                    <p>Add one or more files to hash or verify.</p>
+                </div>
+                <span class="limit-badge">100 MiB per file</span>
+            </div>
+
+            <div id="dropZone" class="drop-zone" tabindex="0" role="button"
+                 aria-label="Choose files or drag and drop files here">
+                <input id="fileInput" type="file" multiple hidden>
+                <div class="upload-icon" aria-hidden="true">
+                    <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                        <path d="M12 16V4"></path>
+                        <path d="m6 10 6-6 6 6"></path>
+                        <path d="M4 20h16"></path>
+                    </svg>
+                </div>
+                <h3>Drop files here</h3>
+                <p>or <span class="browse-link">browse your device</span></p>
+                <small>Multiple files supported. Up to 100 MiB each.</small>
+            </div>
+
+            <div id="fileArea" class="file-area hidden">
+                <div class="file-area-heading">
+                    <strong id="fileCount">0 files selected</strong>
+                    <button id="clearFiles" class="text-button" type="button">Remove all</button>
+                </div>
+                <div id="fileList" class="file-list"></div>
+            </div>
+
+            <div id="errorMessage" class="error-box hidden" role="alert"></div>
+
+            <section class="form-section">
+                <div class="subheading">
+                    <div>
+                        <h3>Hash algorithms</h3>
+                        <p>Choose which digests to calculate.</p>
+                    </div>
+                </div>
+
+                <div class="algorithm-grid">
+                    <label class="algorithm-card">
+                        <input type="checkbox" name="algorithm" value="SHA-256" checked>
+                        <span class="checkmark"></span>
+                        <span class="algorithm-info">
+                            <strong>SHA-256</strong>
+                            <small>256-bit</small>
+                        </span>
+                        <span class="recommended">Recommended</span>
+                    </label>
+
+                    <label class="algorithm-card">
+                        <input type="checkbox" name="algorithm" value="SHA-512">
+                        <span class="checkmark"></span>
+                        <span class="algorithm-info">
+                            <strong>SHA-512</strong>
+                            <small>512-bit</small>
+                        </span>
+                    </label>
+
+                    <label class="algorithm-card">
+                        <input type="checkbox" name="algorithm" value="SHA-384">
+                        <span class="checkmark"></span>
+                        <span class="algorithm-info">
+                            <strong>SHA-384</strong>
+                            <small>384-bit</small>
+                        </span>
+                    </label>
+
+                    <label class="algorithm-card">
+                        <input type="checkbox" name="algorithm" value="SHA-1">
+                        <span class="checkmark"></span>
+                        <span class="algorithm-info">
+                            <strong>SHA-1</strong>
+                            <small>160-bit, legacy</small>
+                        </span>
+                    </label>
+                </div>
+                <p class="hint">
+                    SHA-256 is the most common choice for published checksums. SHA-1 is
+                    included only for checking older downloads and is no longer collision resistant.
+                </p>
+            </section>
+
+            <section class="form-section">
+                <div class="subheading">
+                    <div>
+                        <h3>Publisher checksum <span class="optional">Optional</span></h3>
+                        <p>Add the checksum from the download page to verify your files. Leave it empty to only generate hashes.</p>
+                    </div>
+                </div>
+
+                <label for="expectedHash" class="field-label">Expected checksum</label>
+                <textarea id="expectedHash" rows="3" spellcheck="false"
+                    autocomplete="off" autocapitalize="off" autocorrect="off"
+                    aria-describedby="expectedHashHint"
+                    placeholder="Paste a SHA-1, SHA-256, SHA-384 or SHA-512 checksum"></textarea>
+
+                <div class="input-footer">
+                    <span id="expectedHashHint" class="hint">You can also import a checksum file below.</span>
+                    <button id="clearChecksum" class="text-button" type="button">Clear</button>
+                </div>
+
+                <div class="checksum-import">
+                    <label for="checksumFile" class="button button-secondary import-button">
+                        Import checksum file
+                    </label>
+                    <input id="checksumFile" type="file" hidden>
+                    <span id="checksumFileName" class="hint">SHA256SUMS, .sha256, .sha512, .sha1, or .txt</span>
+                </div>
+            </section>
+
+            <div class="actions">
+                <button id="generateButton" class="button button-primary" type="button">
+                    Generate hashes
+                </button>
+                <button id="verifyButton" class="button button-secondary" type="button">
+                    Verify checksum
+                </button>
+                <button id="cancelButton" class="button button-danger hidden" type="button">
+                    Cancel
+                </button>
+            </div>
+
+            <div id="progressContainer" class="progress-container hidden" aria-live="polite">
+                <div class="progress-info">
+                    <span id="progressLabel">Preparing...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div id="progressBar" class="progress-track" role="progressbar"
+                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <section id="resultsSection" class="results-section hidden">
+                <div class="results-heading">
+                    <div>
+                        <h2>Results</h2>
+                        <p id="resultsSummary">Calculated file hashes.</p>
+                    </div>
+                    <span class="complete-badge">Complete</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <caption class="sr-only">File hashes and verification status</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">File</th>
+                                <th scope="col">Algorithm</th>
+                                <th scope="col">Hash</th>
+                                <th scope="col">Verification</th>
+                                <th scope="col"><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="export-actions">
+                    <button id="exportTxt" class="button button-secondary" type="button">Export TXT</button>
+                    <button id="exportCsv" class="button button-secondary" type="button">Export CSV</button>
+                    <button id="clearResults" class="button button-secondary" type="button">Clear results</button>
+                </div>
+            </section>
+        </section>
+
+        <section class="privacy-card">
+            <div class="privacy-icon" aria-hidden="true">
+                <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                    <path d="M12 3 5 6v5c0 4.5 3 8.2 7 10 4-1.8 7-5.5 7-10V6l-7-3Z"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                </svg>
+            </div>
+            <div>
+                <h3>Files stay on your device</h3>
+                <p>
+                    Hashes are calculated in your browser with the Web Crypto API.
+                    Nothing is uploaded to a server. Results are held in this page’s
+                    memory until you clear them or reload.
+                </p>
+            </div>
+        </section>
+
+        <section class="info-section">
+            <h2>How it works</h2>
+            <div class="info-grid">
+                <article class="info-card">
+                    <span>01</span>
+                    <h3>Add files</h3>
+                    <p>Select files or drag them into the workspace. Several files can be processed together.</p>
+                    <dl><dt>input</dt><dd>file bytes</dd><dt>read</dt><dd>locally, in the browser</dd></dl>
+                </article>
+                <article class="info-card">
+                    <span>02</span>
+                    <h3>Generate hashes</h3>
+                    <p>Pick the algorithms you need. HashLab calculates a digest for each file.</p>
+                    <dl><dt>function</dt><dd>SHA-1, 256, 384, 512</dd><dt>output</dt><dd>fixed-length digest</dd></dl>
+                </article>
+                <article class="info-card">
+                    <span>03</span>
+                    <h3>Verify the result</h3>
+                    <p>Compare each digest with the checksum published by the source.</p>
+                    <dl><dt>compare</dt><dd>digest vs checksum</dd><dt>result</dt><dd>Match or Mismatch</dd></dl>
+                </article>
+            </div>
+            <p class="disclaimer">
+                A matching checksum shows that your file is identical to the one the
+                checksum was calculated from. It does not show who published the file
+                or that it is safe to run. Where possible, get the checksum from a
+                different channel than the download itself.
+            </p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <span>HashLab</span>
+        <span>Local processing. No account required.</span>
+    </footer>
+</body>
+</html>
